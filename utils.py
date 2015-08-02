@@ -65,7 +65,7 @@ def get_date_from_filename(filename):
 def get_last_date_in_dir(dir):
     lastDate = datetime.datetime.min
     for filename in os.listdir(dir):
-        if filename.endswith(".tmp"):
+        if filename.endswith(".tmp") or filename.endswith("_tmp"):
             continue
         date = get_date_from_filename(filename)
         if date is None:

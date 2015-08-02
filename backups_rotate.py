@@ -119,9 +119,13 @@ def do_backup():
             utils.log(utils.LOG_WARN, "backup", "Destination folder exists {0}".format(dest_path))
             return
 
-        utils.log(utils.LOG_INFO, "backup", "Copying {0} to {1}...".format(src_dir, dest_path))
+        dest_path_tmp = dest_path + "_tmp"
+        utils.log(utils.LOG_INFO, "backup", "Copying {0} to {1}...".format(src_dir, dest_path_tmp))
         try:
-            shutil.copytree(src_dir, dest_path)
+            if os.path.exists(dest_path_tmp):
+                shutil.rmtree(dest_path_tmp)
+            shutil.copytree(src_dir, dest_path_tmp)
+            os.rename(dest_path_tmp, dest_path)
         except Exception as err:
             utils.log(utils.LOG_WARN, "backup", err)
 
