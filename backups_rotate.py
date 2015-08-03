@@ -18,6 +18,7 @@ do_compress = utils.get_option(config, 'compress')
 cpu_limit = utils.get_option(config, 'cpu_limit')
 
 interval = utils.get_interval_from_str(utils.get_option(config, 'interval'))
+check = utils.get_option(config, 'check')
 delete_older_than = utils.get_option(config, 'delete_older_than')
 clean_day_parts = utils.get_option(config, 'clean_day_parts')
 
@@ -28,7 +29,7 @@ if args.basedate:
     base_date = datetime.strptime(args.basedate, "%Y-%m-%d")
 
 def main():
-    global src_dir, dest_dir
+    global src_dir, dest_dir, interval
 
     # checks
     src_dir = src_dir.rstrip("/") + "/"
@@ -57,20 +58,20 @@ def main():
         utils.log(utils.LOG_ERROR, "backup", "Destination directory doesn't exist: {0}".format(dest_dir))
         sys.exit(1)
 
+    interval = timedelta(seconds=interval)
 
     last_date = utils.get_last_date_in_dir(dest_dir)
-    print(last_date)
 
     rotate_needed = False
 
     if last_date is not None:
-        diff = base_date - last_date
-        diff_in_secs = (
-            diff.microseconds + (diff.seconds + diff.days * 24 * 3600) * 10**6) / 10**6
+        if check == 'exact':
+            diff = base_date - last_date
+        elif check == 'daily':
+            diff = base_date.date() - last_date.date()
 
-        if delete_older_than:
-            if diff_in_secs >= interval:
-                rotate_needed = True
+        if diff >= interval:
+            rotate_needed = True
     else:
         rotate_needed = True
 
@@ -85,10 +86,10 @@ def do_backup():
 
     dest_path = dest_dir + dest_file_name
 
-    print(dest_path)
+    if do_compress in ['gzip', 'store']:
+        ext = {'gzip': 'tgz', 'store': 'tar'}[do_compress]
 
-    if do_compress:
-        dest_path_compressed = dest_dir + dest_file_name + ".tar.gz"
+        dest_path_compressed = dest_dir + dest_file_name + "." + ext
         if os.path.exists(dest_path_compressed):
             utils.log(utils.LOG_WARN, "backup", "Destination file exists {0}".format(dest_path_compressed))
             return
@@ -99,17 +100,24 @@ def do_backup():
         os.chdir(src_dir)
 
         utils.log(utils.LOG_INFO, "backup", "Creating archive {0} to {1}...".format(src_dir, dest_path_compressed_tmp))
-        cmd = "tar --create --gzip --file=\"{0}\" {1}".format(dest_path_compressed_tmp, "*")
-        print(cmd)
+        args = ['tar']
+        args.append('--create')
+        if do_compress == 'gzip':
+            args.append('--gzip')
+        args.append('--file')
+        args.append(dest_path_compressed_tmp)
+        args.append('.')
+        # cmd = "tar --create --gzip --file=\"{0}\" {1}".format(dest_path_compressed_tmp, "*")
+        # print(cmd)
 
-        process = subprocess.Popen(cmd, shell=True)
+        print(" ".join(args))
+        process = subprocess.Popen(args)
         if cpu_limit:
             processLimit = subprocess.Popen( "cpulimit --lazy --include-children --pid={0} --limit={1}".format(process.pid, cpu_limit), shell=True)
             r = process.wait()
             processLimit.wait()
         else:
             r = process.wait()
-        print(r)
 
         if r == 0:
             utils.log(utils.LOG_INFO, "backup", "Copying {0} to {1}".format(dest_path_compressed_tmp, dest_path_compressed))
@@ -140,8 +148,6 @@ def do_rotate():
             date = utils.get_date_from_filename(filename)
             if date is None:
                 continue
-
-            print(date)
 
             if utils.get_date_diff_in_seconds(date, base_date) >= interval:
                 delete_backup_file(filename)
