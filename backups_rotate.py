@@ -1,6 +1,8 @@
 import os, sys, argparse, time, subprocess, configparser, shutil
 from datetime import datetime, timedelta
-import utils
+import utils, report
+
+report.init()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--config", required=True)
@@ -61,6 +63,7 @@ def main():
     interval = timedelta(seconds=interval)
 
     last_date = utils.get_last_date_in_dir(dest_dir)
+    report.log("Last backup date: {0}".format(last_date))
 
     rotate_needed = False
 
@@ -76,6 +79,7 @@ def main():
         rotate_needed = True
 
     if rotate_needed or args.force:
+        report.log("Rotate needed")
         do_backup()
 
     do_rotate()
@@ -107,13 +111,13 @@ def do_backup():
         args.append('--file')
         args.append(dest_path_compressed_tmp)
         args.append('.')
-        # cmd = "tar --create --gzip --file=\"{0}\" {1}".format(dest_path_compressed_tmp, "*")
-        # print(cmd)
 
-        print(" ".join(args))
+        report.log_command(" ".join(args))
         process = subprocess.Popen(args)
         if cpu_limit:
-            processLimit = subprocess.Popen( "cpulimit --lazy --include-children --pid={0} --limit={1}".format(process.pid, cpu_limit), shell=True)
+            limit_cmd = "cpulimit --lazy --include-children --pid={0} --limit={1}".format(process.pid, cpu_limit)
+            report.log_command(limit_cmd)
+            processLimit = subprocess.Popen(limit_cmd, shell=True)
             r = process.wait()
             processLimit.wait()
         else:
