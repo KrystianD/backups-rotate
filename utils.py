@@ -9,15 +9,15 @@ options_list = [
     [ 'dst', 'dest', 'destination' ],
 ]
 
-def get_option(config, value):
-    if config.has_option('rotate', value):
-        return config.get('rotate', value)
+def get_option(section, config, value):
+    if config.has_option(section, value):
+        return config.get(section, value)
     lists = list(filter(lambda x: value in x, options_list))
     if len(lists) > 0:
         lists = lists[0]
         for opt in lists:
-            if config.has_option('rotate', opt):
-                return config.get('rotate', opt)
+            if config.has_option(section, opt):
+                return config.get(section, opt)
     return None
 
 def get_interval_from_str(txt):

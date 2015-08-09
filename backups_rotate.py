@@ -11,18 +11,19 @@ args = parser.parse_args()
 config = configparser.ConfigParser()
 config.read(args.config)
 
-name = utils.get_option(config, 'name')
-src_dir = utils.get_option(config, 'src')
-dest_dir = utils.get_option(config, 'dest')
-do_compress = utils.get_option(config, 'compress')
-cpu_limit = utils.get_option(config, 'cpu_limit')
+name = utils.get_option('backup', config, 'name')
+src_dir = utils.get_option('backup', config, 'src')
+do_compress = utils.get_option('backup', config, 'compress')
+cpu_limit = utils.get_option('backup', config, 'cpu_limit')
+interval = utils.get_interval_from_str(utils.get_option('backup', config, 'interval'))
+check = utils.get_option('backup', config, 'check')
 
-interval = utils.get_interval_from_str(utils.get_option(config, 'interval'))
-check = utils.get_option(config, 'check')
-delete_older_than = utils.get_option(config, 'delete_older_than')
-clean_day_parts = utils.get_option(config, 'clean_day_parts')
+dest_dir = utils.get_option('rotate', config, 'dest')
+delete_older_than = utils.get_option('rotate', config, 'delete_older_than')
+clean_day_parts = utils.get_option('rotate', config, 'clean_day_parts')
+delete_prefix = utils.get_option('rotate', config, 'delete_prefix')
 
-delete_prefix = utils.get_option(config, 'delete_prefix')
+task_backup = src_dir is not None
 
 base_date = datetime.now()
 if args.basedate:
@@ -31,52 +32,56 @@ if args.basedate:
 def main():
     global src_dir, dest_dir, interval
 
-    # checks
-    src_dir = src_dir.rstrip("/") + "/"
-    dest_dir = dest_dir.rstrip("/") + "/"
-
-    if name is None:
-        utils.log(utils.LOG_ERROR, "backup", "name must be specified".format(src_dir))
-        sys.exit(1)
     if delete_older_than is not None and clean_day_parts is not None:
         utils.log(utils.LOG_ERROR, "backup", "specify one of delete_older_than or clean_day_parts".format(src_dir))
         sys.exit(1)
-    if interval is None:
-        utils.log(utils.LOG_ERROR, "backup", "interval must be specified".format(src_dir))
-        sys.exit(1)
 
-    if not os.path.isabs(src_dir):
-        utils.log(utils.LOG_ERROR, "backup", "Source directory - path must be absolute: {0}".format(src_dir))
-        sys.exit(1)
+    dest_dir = dest_dir.rstrip("/") + "/"
+
+    if task_backup:
+        src_dir = src_dir.rstrip("/") + "/"
+
+        if name is None:
+            utils.log(utils.LOG_ERROR, "backup", "name must be specified".format(src_dir))
+            sys.exit(1)
+        if interval is None:
+            utils.log(utils.LOG_ERROR, "backup", "interval must be specified".format(src_dir))
+            sys.exit(1)
+
+        if not os.path.isabs(src_dir):
+            utils.log(utils.LOG_ERROR, "backup", "Source directory - path must be absolute: {0}".format(src_dir))
+            sys.exit(1)
+        if not os.path.exists(src_dir):
+            utils.log(utils.LOG_ERROR, "backup", "Source directory doesn't exist: {0}".format(src_dir))
+            sys.exit(1)
+
+        interval = timedelta(seconds=interval)
+
     if not os.path.isabs(dest_dir):
         utils.log(utils.LOG_ERROR, "backup", "Destination directory - path must be absolute: {0}".format(src_dir))
-        sys.exit(1)
-    if not os.path.exists(src_dir):
-        utils.log(utils.LOG_ERROR, "backup", "Source directory doesn't exist: {0}".format(src_dir))
         sys.exit(1)
     if not os.path.exists(dest_dir):
         utils.log(utils.LOG_ERROR, "backup", "Destination directory doesn't exist: {0}".format(dest_dir))
         sys.exit(1)
 
-    interval = timedelta(seconds=interval)
-
     last_date = utils.get_last_date_in_dir(dest_dir)
 
-    rotate_needed = False
+    if task_backup:
+        rotate_needed = False
 
-    if last_date is not None:
-        if check == 'exact':
-            diff = base_date - last_date
-        elif check == 'daily':
-            diff = base_date.date() - last_date.date()
+        if last_date is not None:
+            if check == 'exact':
+                diff = base_date - last_date
+            elif check == 'daily':
+                diff = base_date.date() - last_date.date()
 
-        if diff >= interval:
+            if diff >= interval:
+                rotate_needed = True
+        else:
             rotate_needed = True
-    else:
-        rotate_needed = True
 
-    if rotate_needed or args.force:
-        do_backup()
+        if rotate_needed or args.force:
+            do_backup()
 
     do_rotate()
 
