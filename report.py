@@ -26,4 +26,4 @@ def get_html():
     global output
     return template.format(content=output)
 
-print(template)
+# print(template)

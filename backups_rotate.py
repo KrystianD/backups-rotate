@@ -20,10 +20,11 @@ cpu_limit = utils.get_option('backup', config, 'cpu_limit')
 interval = utils.get_interval_from_str(utils.get_option('backup', config, 'interval'))
 check = utils.get_option('backup', config, 'check')
 
-dest_dir = utils.get_option('rotate', config, 'dest')
 delete_older_than = utils.get_option('rotate', config, 'delete_older_than')
 clean_day_parts = utils.get_option('rotate', config, 'clean_day_parts')
 delete_prefix = utils.get_option('rotate', config, 'delete_prefix')
+
+dest_dir = utils.get_option('global', config, 'dest')
 
 task_backup = src_dir is not None
 
