@@ -34,15 +34,23 @@ def get_interval_from_str(txt):
 
 def get_date_from_filename(filename):
     m = re.match("^(\d\d\d\d)-(\d\d)-(\d\d)_(\d\d)(\d\d)(\d\d)", filename)
-    if m is None:
-        return None
-    year = int(m.group(1))
-    month = int(m.group(2))
-    day = int(m.group(3))
-    hour = int(m.group(4))
-    minute = int(m.group(5))
-    seconds = int(m.group(6))
-    return datetime.datetime(year, month, day, hour, minute, seconds)
+    if m is not None:
+        year = int(m.group(1))
+        month = int(m.group(2))
+        day = int(m.group(3))
+        hour = int(m.group(4))
+        minute = int(m.group(5))
+        seconds = int(m.group(6))
+        return datetime.datetime(year, month, day, hour, minute, seconds)
+    m = re.match("^(\d\d\d\d)-(\d\d)-(\d\d)_(\d\d)(\d\d)", filename)
+    if m is not None:
+        year = int(m.group(1))
+        month = int(m.group(2))
+        day = int(m.group(3))
+        hour = int(m.group(4))
+        minute = int(m.group(5))
+        return datetime.datetime(year, month, day, hour, minute, 0)
+    return None
 
 
 def get_last_date_in_dir(dir):
