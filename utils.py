@@ -3,7 +3,6 @@ import sys
 import os
 import datetime
 
-
 options_list = [
     [ 'src', 'source' ],
     [ 'dst', 'dest', 'destination' ],
@@ -33,25 +32,8 @@ def get_interval_from_str(txt):
 
     return secs
 
-# 0 error 1 warn 2 info
-LOG_ERROR = 0
-LOG_WARN = 1
-LOG_INFO = 2
-
-
-def log(type, category, txt):
-    if type == 0:
-        sys.stdout.write("\033[1;31m")
-    if type == 1:
-        sys.stdout.write("\033[1;33m")
-    if type == 2:
-        sys.stdout.write("\033[1;32m")
-
-    sys.stdout.write("[{0}] {1}\033[0m\n".format(category, txt))
-
-
 def get_date_from_filename(filename):
-    m = re.match("^(\d\d\d\d)-(\d\d)-(\d\d)_(\d\d)(\d\d)", filename)
+    m = re.match("^(\d\d\d\d)-(\d\d)-(\d\d)_(\d\d)(\d\d)(\d\d)", filename)
     if m is None:
         return None
     year = int(m.group(1))
@@ -59,7 +41,8 @@ def get_date_from_filename(filename):
     day = int(m.group(3))
     hour = int(m.group(4))
     minute = int(m.group(5))
-    return datetime.datetime(year, month, day, hour, minute, 0)
+    seconds = int(m.group(6))
+    return datetime.datetime(year, month, day, hour, minute, seconds)
 
 
 def get_last_date_in_dir(dir):
