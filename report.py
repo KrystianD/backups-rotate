@@ -12,7 +12,6 @@ template = """\
 <body>{content}</body></html>"""
 
 output = None
-name = None
 
 html_escape_table = { "&": "&amp;", '"': "&quot;", "'": "&apos;", ">": "&gt;", "<": "&lt;", }
 def html_escape(text):
@@ -20,18 +19,15 @@ def html_escape(text):
 
 def init():
     global output
-    # f = open("report.html", "wb")
     output = ""
 
-def set_config(_config):
-    global config
-    config = _config
+def log_name(name):
+    log_text("Name: {0}".format(name))
+    log_html("<div style='margin: 3px; font-size: 15pt; font-weight: bold; color: blue'>{0}</div>".format(name))
 
-def log_name(_name):
-    global name
-    name = _name
-    log_text("Rotating {0}".format(name))
-    log_html("<div style='margin: 3px; font-size: 13pt; font-weight: bold; color: green'>Rotating {0}</div>".format(name))
+def log_task(name):
+    log_text("Task: {0}".format(name))
+    log_html("<div style='margin: 3px; font-size: 13pt; font-weight: bold; color: green'>Task: {0}</div>".format(name))
     
 def log_command(cmd):
     log_html("<div><pre style='margin: 0; padding: 0'><b>&gt; {0}</b></pre></div>".format(html_escape(cmd)))
@@ -65,24 +61,23 @@ def log_html(html):
     html = html.replace("\n", "<br/>").replace("  ", "&nbsp;&nbsp;")
     output += html + "\n"
 
-def send(code):
+def send(config, code):
     global output
     now = datetime.datetime.now()
     dateStr = now.strftime("%Y-%m-%d %H:%M")
 
+    name = config['name']
     if code == 0:
-        subject = 'backup-rotate {0} {1} SUCCEED'.format(name, dateStr)
+        subject = 'backup-rotate: {0} {1} SUCCEED'.format(name, dateStr)
     else:
-        subject = 'backup-rotate {0} {1} FAILED'.format(name, dateStr)
+        subject = 'backup-rotate: {0} {1} FAILED'.format(name, dateStr)
 
-    mail_recipients = utils.get_option('global', config, 'mail_recipients')
-    if mail_recipients is None:
-        return
-
-    mail_from = utils.get_option('global', config, 'mail_from')
-    mail_smtp_host = utils.get_option('global', config, 'mail_smtp_host')
-    mail_smtp_user = utils.get_option('global', config, 'mail_smtp_user')
-    mail_smtp_pass = utils.get_option('global', config, 'mail_smtp_pass')
+    mail_recipients = config['mail']['recipients']
+    mail_from = config['mail']['from']
+    mail_smtp_host = config['mail']['smtp_host']
+    mail_smtp_port = config['mail'].get('smtp_port', 25)
+    mail_smtp_user = config['mail'].get('smtp_user')
+    mail_smtp_pass = config['mail'].get('smtp_pass')
 
     recps = mail_recipients.split(',')
 
@@ -93,8 +88,9 @@ def send(code):
     msg['From'] = mail_from
     msg['To'] = ",".join(recps)
 
-    s = smtplib.SMTP(mail_smtp_host)
-    s.login(mail_smtp_user, mail_smtp_pass)
+    s = smtplib.SMTP(mail_smtp_host, port=mail_smtp_port)
+    if mail_smtp_user is not None and mail_smtp_pass is not None:
+        s.login(mail_smtp_user, mail_smtp_pass)
     s.sendmail(msg['From'], recps, msg.as_string())
     s.quit()
 
