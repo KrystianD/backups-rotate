@@ -1,4 +1,4 @@
-import os, sys, argparse, time, subprocess, configparser, shutil, select, traceback
+import os, sys, argparse, time, subprocess, configparser, shutil, select, traceback, shlex
 from datetime import datetime, timedelta
 import utils, report
 import ago, yaml
@@ -144,17 +144,15 @@ class BackupTask(Task):
             os.chdir(self.src_dir)
 
             report.log_state("Creating archive {0} to {1}...".format(self.cc(self.src_dir), self.cc(dest_path_compressed_tmp)))
-            args = ['tar']
-            # args.append('--verbose')
-            args.append('--create')
-            if self.do_compress == 'gzip':
-                args.append('--gzip')
-            args.append('--file')
-            args.append(dest_path_compressed_tmp)
-            args.append('.')
 
-            report.log_command(self.cc(" ".join(args)))
-            process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            if self.do_compress == 'gzip':
+                cmd = "tar --create . | pigz > {0}".format(shlex.quote(dest_path_compressed_tmp))
+            else:
+                cmd = "tar --create --file {0} .".format(shlex.quote(dest_path_compressed_tmp))
+
+            report.log_command(cmd)
+            process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
             processLimit = None
             if self.cpu_limit:
                 limit_cmd = "cpulimit --lazy --include-children --pid={0} --limit={1}".format(process.pid, self.cpu_limit)
