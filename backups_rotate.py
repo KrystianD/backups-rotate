@@ -120,7 +120,7 @@ class BackupTask(Task):
         if not self.check_if_needed():
             return
 
-        dest_file_name = base_date.strftime("%Y-%m-%d_%H%M%S_") + self.name
+        dest_file_name = base_date.strftime("%Y-%m-%d_%H%M%S_") + utils.get_valid_filename(self.name)
 
         self.process_vars([
             ['DEST_FILENAME', dest_file_name],

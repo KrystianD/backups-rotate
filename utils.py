@@ -74,3 +74,14 @@ def get_last_date_in_dir(dir):
 def get_date_diff_in_seconds(date, base_date):
     diff = base_date - date
     return (diff.microseconds + (diff.seconds + diff.days * 24 * 3600) * 10**6) / 10**6
+
+def is_valid_filename_char(x):
+    if x.isalnum():
+        return True
+    if x == '_':
+        return True
+    return False
+
+def get_valid_filename(s):
+    s = s.replace(" ", "_")
+    return "".join(x for x in s if is_valid_filename_char(x))
